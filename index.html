@@ -671,6 +671,61 @@
 				background: var(--ui1);
 				border-radius: 3px;
 			}
+			.ratio-slider-wrap {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				margin-bottom: 8px;
+			}
+
+			.ratio-slider-label {
+				font-family: var(--mono);
+				font-size: 0.82rem;
+				white-space: nowrap;
+				min-width: 80px;
+			}
+
+			.ratio-slider-label:last-child {
+				text-align: right;
+			}
+
+			.ratio-slider {
+				-webkit-appearance: none;
+				appearance: none;
+				flex: 1;
+				height: 4px;
+				border-radius: 2px;
+				background: linear-gradient(to right, var(--color-blue) 0%, var(--color-blue) var(--slider-pct, 60%), var(--color-purple) var(--slider-pct, 60%), var(--color-purple) 100%);
+				outline: none;
+				cursor: pointer;
+				border: none;
+			}
+
+			.ratio-slider::-webkit-slider-thumb {
+				-webkit-appearance: none;
+				width: 16px;
+				height: 16px;
+				border-radius: 50%;
+				background: var(--tx1);
+				border: 2px solid var(--ui3);
+				cursor: pointer;
+				transition: border-color var(--transition), transform var(--transition);
+			}
+
+			.ratio-slider::-webkit-slider-thumb:hover {
+				border-color: var(--accent);
+				transform: scale(1.15);
+			}
+
+			.ratio-slider::-moz-range-thumb {
+				width: 16px;
+				height: 16px;
+				border-radius: 50%;
+				background: var(--tx1);
+				border: 2px solid var(--ui3);
+				cursor: pointer;
+			}
+
 		</style>
 	</head>
 	<body>
@@ -766,28 +821,13 @@
 				</div>
 				<div class="input-group">
 					<label class="input-label">Répartition ETF / Plaisir (%)</label>
-					<div class="settings-row" style="margin-bottom: 8px">
-						<div>
-							<div class="fund-edit-label">ETF</div>
-							<input
-								type="number"
-								id="ratioEtfInput"
-								min="0"
-								max="100"
-								step="1"
-							/>
-						</div>
-						<div>
-							<div class="fund-edit-label">Plaisir</div>
-							<input
-								type="number"
-								id="ratioPlaisirInput"
-								min="0"
-								max="100"
-								step="1"
-							/>
-						</div>
+					<div class="ratio-slider-wrap">
+						<span class="ratio-slider-label" style="color:var(--color-blue)">ETF <strong id="ratioEtfVal">60</strong>%</span>
+						<input type="range" id="ratioSlider" min="0" max="100" step="1" class="ratio-slider" value="60" />
+						<span class="ratio-slider-label" style="color:var(--color-purple)">Plaisir <strong id="ratioPlaisirVal">40</strong>%</span>
 					</div>
+					<input type="hidden" id="ratioEtfInput" value="60" />
+					<input type="hidden" id="ratioPlaisirInput" value="40" />
 					<div class="ratio-display" id="ratioDisplay"></div>
 				</div>
 				<div
@@ -1136,21 +1176,21 @@
 				document.getElementById("ratioEtfInput").value = state.params.ratio_etf;
 				document.getElementById("ratioPlaisirInput").value =
 					state.params.ratio_plaisir;
+				const slider = document.getElementById("ratioSlider");
+				slider.value = state.params.ratio_etf;
+				slider.style.setProperty("--slider-pct", state.params.ratio_etf + "%");
+				document.getElementById("ratioEtfVal").textContent = state.params.ratio_etf;
+				document.getElementById("ratioPlaisirVal").textContent = state.params.ratio_plaisir;
 				updateRatioDisplay();
 			}
 
 			function updateRatioDisplay() {
 				const e = parseInt(document.getElementById("ratioEtfInput").value) || 0;
-				const p =
-					parseInt(document.getElementById("ratioPlaisirInput").value) || 0;
-				const s = e + p;
+				const p = parseInt(document.getElementById("ratioPlaisirInput").value) || 0;
 				const d = document.getElementById("ratioDisplay");
-				d.className = "ratio-display " + (s === 100 ? "valid" : "invalid");
-				d.textContent =
-					s === 100
-						? `ETF ${e}% + Plaisir ${p}% = 100% ✓`
-						: `ETF ${e}% + Plaisir ${p}% = ${s}% — doit faire 100%`;
-				return s === 100;
+				d.className = "ratio-display valid";
+				d.textContent = `ETF ${e}% + Plaisir ${p}% = 100% ✓`;
+				return true;
 			}
 
 			function showResult(montant, label, alloc, rules) {
@@ -1220,17 +1260,6 @@
 				aBtn.addEventListener("click", () => {
 					const m = r2(parseFloat(amtIn.value));
 					if (isNaN(m) || m <= 0) return;
-					if (
-						(parseInt(document.getElementById("ratioEtfInput").value) || 0) +
-							(parseInt(document.getElementById("ratioPlaisirInput").value) ||
-								0) !==
-						100
-					) {
-						alert(
-							"Les ratios ETF + Plaisir doivent faire 100 %. Corrige les paramètres.",
-						);
-						return;
-					}
 					const { alloc, rules } = allocate(m);
 					showResult(m, lblIn.value.trim(), alloc, rules);
 				});
@@ -1292,29 +1321,19 @@
 						saveState();
 					});
 
-				const rh = () => {
-					const e = clamp(
-						parseInt(document.getElementById("ratioEtfInput").value) || 0,
-						0,
-						100,
-					);
-					const p = clamp(
-						parseInt(document.getElementById("ratioPlaisirInput").value) || 0,
-						0,
-						100,
-					);
+				document.getElementById("ratioSlider").addEventListener("input", function () {
+					const e = parseInt(this.value);
+					const p = 100 - e;
+					this.style.setProperty("--slider-pct", e + "%");
+					document.getElementById("ratioEtfVal").textContent = e;
+					document.getElementById("ratioPlaisirVal").textContent = p;
 					document.getElementById("ratioEtfInput").value = e;
 					document.getElementById("ratioPlaisirInput").value = p;
-					if (updateRatioDisplay()) {
-						state.params.ratio_etf = e;
-						state.params.ratio_plaisir = p;
-						saveState();
-					}
-				};
-				document.getElementById("ratioEtfInput").addEventListener("change", rh);
-				document
-					.getElementById("ratioPlaisirInput")
-					.addEventListener("change", rh);
+					state.params.ratio_etf = e;
+					state.params.ratio_plaisir = p;
+					saveState();
+					updateRatioDisplay();
+				});
 
 				document.getElementById("resetBtn").addEventListener("click", (e) => {
 					e.stopPropagation();
