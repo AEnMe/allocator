@@ -820,20 +820,17 @@
 
 			<div class="section-gap"></div>
 
-			<div
-				style="
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-					margin-bottom: 10px;
-				"
-			>
-				<div class="section-label" style="margin: 0">Historique</div>
-				<button class="btn btn-ghost" id="resetBtn" style="font-size: 0.72rem">
-					Réinitialiser
-				</button>
+			<div class="section-label">Historique</div>
+			<div class="toggle-header" id="historyToggle" role="button" tabindex="0">
+				<span class="card-label" style="margin: 0">Historique des apports</span>
+				<div style="display: flex; align-items: center; gap: 8px">
+					<button class="btn btn-ghost" id="resetBtn" style="font-size: 0.72rem">
+						Réinitialiser
+					</button>
+					<span class="chevron">▼</span>
+				</div>
 			</div>
-			<div class="card" style="padding: 8px 16px">
+			<div class="toggle-body" id="historyBody" style="padding: 8px 16px">
 				<div id="historyList"></div>
 			</div>
 		</div>
@@ -1269,6 +1266,7 @@
 
 				setupToggle("settingsToggle", "settingsBody");
 				setupToggle("totalsToggle", "totalsBody");
+				setupToggle("historyToggle", "historyBody");
 
 				const bindCible = (id, fund) => {
 					document.getElementById(id).addEventListener("change", function () {
@@ -1318,7 +1316,8 @@
 					.getElementById("ratioPlaisirInput")
 					.addEventListener("change", rh);
 
-				document.getElementById("resetBtn").addEventListener("click", () => {
+				document.getElementById("resetBtn").addEventListener("click", (e) => {
+					e.stopPropagation();
 					showConfirm("Supprimer tout l\u2019historique\u00a0?", () => {
 						state.history = [];
 						state.totals = { etf: 0, plaisir: 0, urgence: 0, reserve: 0 };
